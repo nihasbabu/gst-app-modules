@@ -4,6 +4,19 @@ from tkinter import filedialog, messagebox
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Font
 from openpyxl.utils import get_column_letter
+import logging # For consistency and potential local logging
+import os # For os.path.basename if used in logging
+import traceback # For detailed error reporting in telemetry
+
+# Attempt to import telemetry
+try:
+    from utils.telemetry import send_event
+    logging.info(f"{os.path.basename(__file__)}: Successfully imported send_event from utils.telemetry")
+except ImportError as e_import:
+    logging.warning(f"{os.path.basename(__file__)}: Could not import send_event from utils.telemetry (error: {e_import}). Telemetry will be disabled for this module.")
+    print(f"[WARN] {os.path.basename(__file__)}: Failed to import telemetry from utils.telemetry. Error: {e_import}")
+    def send_event(event_name, payload): # Dummy function
+        pass
 
 # -----------------------------------------------------------------------------
 # Constants & Styles
@@ -15,7 +28,7 @@ NO_FILL = PatternFill()  # clear
 
 
 # -----------------------------------------------------------------------------
-# Helper Functions
+# Helper Functions (Your existing helper functions remain here)
 # -----------------------------------------------------------------------------
 def normalize_key(x):
     """Strip non‐alphanumeric, lowercase."""
@@ -38,7 +51,6 @@ def get_header_col(sheet, header_name, sheet_title_for_warning=""):
     if not sheet:
         return None
     h = header_name.strip().lower()
-    # Ensure sheet has at least 2 rows before trying to access sheet[2]
     if sheet.max_row >= 2:
         for cell in sheet[2]:  # Assuming headers are in row 2
             if cell.value and str(cell.value).strip().lower() == h:
@@ -62,8 +74,6 @@ def cleanup_sheet(sheet):
 
     for row_idx in range(3, sheet.max_row + 1):
         for col_idx in range(1, sheet.max_column + 1):
-            # Check if cell exists before trying to change its fill
-            # Also check if the sheet itself has content beyond headers before trying to access cells
             if sheet.max_row >= row_idx and sheet.max_column >= col_idx:
                 current_cell = sheet.cell(row=row_idx, column=col_idx)
                 if current_cell.value is not None or \
@@ -72,10 +82,6 @@ def cleanup_sheet(sheet):
 
 
 def prepare_sale_sheets_infrastructure(sale_sheets_list, numeric_headers, inv_header, gstin_header):
-    """
-    Adds 'Diff' columns to SALE sheets, populates data/diff indices, and builds sale_map.
-    Returns: sale_data_indices, sale_diff_indices, sale_map
-    """
     sale_data_indices = {}
     sale_diff_indices = {}
     sale_map = {}
@@ -97,6 +103,8 @@ def prepare_sale_sheets_infrastructure(sale_sheets_list, numeric_headers, inv_he
             else:
                 messagebox.showwarning("Missing Header",
                                        f"Header '{header_name}' not found in SALE sheet '{title}'. Diff column for it will be skipped.")
+                send_event("recon_warning", {"type": "missing_header", "sheet": title, "header": header_name, "context": "sale_sheets_infrastructure"})
+
 
         gstin_col_idx = get_header_col(sht, gstin_header, title)
         if gstin_col_idx:
@@ -104,6 +112,8 @@ def prepare_sale_sheets_infrastructure(sale_sheets_list, numeric_headers, inv_he
         else:
             messagebox.showwarning("Missing Header",
                                    f"Header '{gstin_header}' (for GSTIN) not found in SALE sheet '{title}'. GSTIN diff column will be skipped.")
+            send_event("recon_warning", {"type": "missing_header", "sheet": title, "header": gstin_header, "context": "sale_sheets_infrastructure_gstin"})
+
 
         cols_to_insert_info.sort(key=lambda item: item[0], reverse=True)
 
@@ -134,69 +144,56 @@ def prepare_sale_sheets_infrastructure(sale_sheets_list, numeric_headers, inv_he
         else:
             messagebox.showwarning("Critical Header Missing",
                                    f"Invoice header '{inv_header}' not found in '{title}'. This sheet cannot be mapped for SALE reconciliation.")
+            send_event("recon_error", {"type": "critical_header_missing", "sheet": title, "header": inv_header, "context": "sale_sheets_infrastructure_invoice"})
+
 
     return sale_data_indices, sale_diff_indices, sale_map
 
 
 def add_totals_to_sheet(sheet_obj, data_indices_dict, diff_indices_dict, key_header_name_in_data_indices,
                         id_field_name_in_diff_indices='gstin'):
-    """
-    Generic function to add a 'Total' row and sum 'Diff' columns for a given sheet.
-    key_header_name_in_data_indices: The key used in data_indices_dict for the main identifier column (e.g., 'inv' or 'note_num').
-    id_field_name_in_diff_indices: The key used for the non-numeric ID diff column in diff_indices_dict (e.g., 'gstin' or 'gstin_key').
-    """
     if not sheet_obj or not data_indices_dict or not diff_indices_dict:
         return
 
     id_col_for_total_label = data_indices_dict.get(key_header_name_in_data_indices)
     if not id_col_for_total_label:
-        id_col_for_total_label = 1  # Fallback to column A for placing "Total" label
-        # messagebox.showwarning("Total Label Placement", f"Cannot find identifier column for 'Total' label in '{sheet_obj.title}'. 'Total' label might be misplaced in Column A.")
-
+        id_col_for_total_label = 1
     data_rows_for_sum = [
         r for r in range(3, sheet_obj.max_row + 1)
         if sheet_obj.cell(row=r, column=id_col_for_total_label).value and \
            str(sheet_obj.cell(row=r, column=id_col_for_total_label).value).strip().lower() != 'total'
     ]
-
     last_data_r = 2
     total_r = 3
     if data_rows_for_sum:
         last_data_r = max(data_rows_for_sum)
         total_r = last_data_r + 1
-
     if total_r > sheet_obj.max_row + 1 and sheet_obj.max_row >= 2:
         total_r = sheet_obj.max_row + 1
     elif sheet_obj.max_row < 2:
-        total_r = 3  # Place at row 3 if sheet is empty or only has 1 row
-
-    # Ensure we don't try to write to row 0 or negative if sheet is very small
+        total_r = 3
     total_r = max(3, total_r)
     last_data_r = max(2, last_data_r)
-
     total_label_cell = sheet_obj.cell(row=total_r, column=id_col_for_total_label)
     total_label_cell.value = "Total"
     total_label_cell.font = Font(bold=True)
-
     for field_key, diff_col_for_sum_idx in diff_indices_dict.items():
         if not diff_col_for_sum_idx: continue
-
         if field_key != id_field_name_in_diff_indices:
             col_letter_sum = get_column_letter(diff_col_for_sum_idx)
             formula_start_row = 3
             formula_end_row = max(formula_start_row, last_data_r)
             formula = f"=SUM({col_letter_sum}{formula_start_row}:{col_letter_sum}{formula_end_row})"
-
             sum_cell = sheet_obj.cell(row=total_r, column=diff_col_for_sum_idx)
             sum_cell.value = formula
             sum_cell.fill = DIFF_FILL
             sum_cell.font = Font(bold=True, color="00008B")
 
-
 # -----------------------------------------------------------------------------
 # Main
 # -----------------------------------------------------------------------------
 def main():
+    send_event("recon_started", {}) # Telemetry: Reconciliation process started
     root = tk.Tk()
     root.withdraw()
 
@@ -204,20 +201,26 @@ def main():
         title="Select workbook",
         filetypes=[("Excel files", "*.xlsx;*.xlsm"), ("All files", "*.*")]
     )
-    if not infile: return
+    if not infile:
+        send_event("recon_cancelled", {"stage": "input_file_selection"})
+        return
     outfile = filedialog.asksaveasfilename(
         title="Save as", defaultextension=".xlsx", filetypes=[("Excel files", "*.xlsx")]
     )
-    if not outfile: return
+    if not outfile:
+        send_event("recon_cancelled", {"stage": "output_file_selection", "input_file_selected": bool(infile)})
+        return
+
+    logging.info(f"Reconciliation: Input file: {infile}, Output file: {outfile}")
+    send_event("recon_files_selected", {"input_file_name": os.path.basename(infile), "output_file_name": os.path.basename(outfile)})
 
     try:
         wb = load_workbook(infile)
     except Exception as e:
         messagebox.showerror("File Load Error", f"Could not load the workbook '{infile}'.\nError: {e}")
+        send_event("recon_error", {"type": "file_load_error", "filename": os.path.basename(infile), "error_message": str(e), "traceback": traceback.format_exc()})
         return
 
-    # --- Attempt to load all potential sheets ---
-    # Corrected way to get sheets optionally:
     sale_b2b_sh = wb['SALE-B2B'] if 'SALE-B2B' in wb.sheetnames else None
     sale_others_sh = wb['SALE-Others'] if 'SALE-Others' in wb.sheetnames else None
     r1_main_sh = wb['R1-B2B,SEZ,DE'] if 'R1-B2B,SEZ,DE' in wb.sheetnames else None
@@ -231,34 +234,30 @@ def main():
     any_reconciliation_performed = False
     s1_executed, s2_executed, s3_executed, s4_executed, s5_executed = False, False, False, False, False
 
-    # --- Cleanup old diffs & highlights ---
     sheets_to_cleanup = [s for s in
                          [sale_b2b_sh, sale_others_sh, r1_main_sh, r1_exp_sh, r1_b2ba_sh, gstr2b_b2b_sh, pur_total_sh,
                           r1_cdnr_sh, credit_r_sh] if s]
     if not sheets_to_cleanup:
         messagebox.showinfo("No Sheets Found", "No relevant sheets found in the workbook to perform any operations.")
+        send_event("recon_aborted", {"reason": "no_relevant_sheets"})
         return
 
     for sht in sheets_to_cleanup:
         cleanup_sheet(sht)
 
-    # --- Prepare SALE sheets infrastructure (Diff columns, indices, map) ---
     sale_sheets_loaded = [s for s in [sale_b2b_sh, sale_others_sh] if s]
     sale_data_indices, sale_diff_indices, sale_map = {}, {}, {}
-
     numeric_sale_headers = ['Invoice value', 'Taxable Value', 'Integrated Tax',
                             'Central Tax', 'State/UT Tax', 'Cess']
     invoice_header_sale = 'Invoice number'
-    gstin_header_sale = 'GSTIN/UIN of Recipient'  # Used for SALE, R1-Main, R1-B2BA
+    gstin_header_sale = 'GSTIN/UIN of Recipient'
 
     if sale_sheets_loaded:
         sale_data_indices, sale_diff_indices, sale_map = prepare_sale_sheets_infrastructure(
             sale_sheets_loaded, numeric_sale_headers, invoice_header_sale, gstin_header_sale
         )
 
-    # -----------------------------------------------------------------------------
-    # 1) SALE ↔ R1-B2B,SEZ,DE (Optional)
-    # -----------------------------------------------------------------------------
+    # --- Section 1: SALE ↔ R1-B2B,SEZ,DE ---
     if sale_sheets_loaded and r1_main_sh and sale_map:
         section1_headers_ok = True
         r1_data_indices = {}
@@ -266,26 +265,27 @@ def main():
             r1_data_indices['inv'] = get_header_col(r1_main_sh, invoice_header_sale, r1_main_sh.title)
             r1_data_indices['gstin'] = get_header_col(r1_main_sh, gstin_header_sale, r1_main_sh.title)
             if not r1_data_indices['inv'] or not r1_data_indices['gstin']:
-                messagebox.showwarning("Header Error (Section 1)",
-                                       f"Essential headers ('{invoice_header_sale}' or '{gstin_header_sale}') not found in '{r1_main_sh.title}'. Section 1 will be skipped.")
+                messagebox.showwarning("Header Error (Section 1)", f"Essential headers ('{invoice_header_sale}' or '{gstin_header_sale}') not found in '{r1_main_sh.title}'. Section 1 will be skipped.")
+                send_event("recon_warning", {"type": "missing_header_section1", "sheet": r1_main_sh.title, "context": "essential_headers"})
                 section1_headers_ok = False
-
             if section1_headers_ok:
                 for f_hdr in numeric_sale_headers:
                     col = get_header_col(r1_main_sh, f_hdr, r1_main_sh.title)
                     if not col:
-                        messagebox.showwarning("Header Warning (Section 1)",
-                                               f"Numeric header '{f_hdr}' not found in '{r1_main_sh.title}'. Comparisons for this field will be skipped.")
+                        messagebox.showwarning("Header Warning (Section 1)", f"Numeric header '{f_hdr}' not found in '{r1_main_sh.title}'. Comparisons for this field will be skipped.")
+                        send_event("recon_warning", {"type": "missing_header_section1", "sheet": r1_main_sh.title, "header": f_hdr})
                     r1_data_indices[f_hdr] = col
         except Exception as e:
-            messagebox.showwarning("Header Error (Section 1)",
-                                   f"An error occurred while getting headers for '{r1_main_sh.title}': {e}. Section 1 will be skipped.")
+            messagebox.showwarning("Header Error (Section 1)", f"An error occurred while getting headers for '{r1_main_sh.title}': {e}. Section 1 will be skipped.")
+            send_event("recon_error", {"type": "header_processing_section1", "sheet": r1_main_sh.title, "error_message": str(e)})
             section1_headers_ok = False
 
         if section1_headers_ok and r1_data_indices.get('inv'):
+            # ... (Your existing reconciliation logic for Section 1) ...
+            # Add more send_event calls within this logic if you want to track specific diffs or issues
             any_reconciliation_performed = True
             s1_executed = True
-
+            # (Rest of Section 1 logic)
             r1_map = {}
             inv_col_r1 = r1_data_indices['inv']
             for r_idx in range(3, r1_main_sh.max_row + 1):
@@ -313,7 +313,7 @@ def main():
                     if r1_gstin_val != sale_gstin_val:
                         r1_main_sh.cell(row=r1_rows[0], column=r1_gstin_col).fill = DIFF_FILL
                         sale_sheet_obj.cell(row=sale_row, column=sale_gstin_col).fill = DIFF_FILL
-                        differences_s1[inv_key]['gstin'] = r1_gstin_val  # Show R1's GSTIN in SALE Diff
+                        differences_s1[inv_key]['gstin'] = r1_gstin_val
 
                 for field_name in numeric_sale_headers:
                     r1_field_col = r1_data_indices.get(field_name)
@@ -331,7 +331,7 @@ def main():
                                 r1_main_sh.cell(row=r1_r_highlight, column=r1_field_col).fill = DIFF_FILL
                             sale_sheet_obj.cell(row=sale_row, column=sale_field_col).fill = DIFF_FILL
                             differences_s1[inv_key][field_name] = diff
-
+            # (Continue with the rest of your Section 1 logic)
             unmatched_sale_invoices_s1 = {k: v for k, v in sale_map.items() if k not in common_invoices}
             unmatched_r1_invoices_s1 = {k: v for k, v in r1_map.items() if k not in common_invoices}
             r1_gstin_col_f, r1_inv_col_f = r1_data_indices.get('gstin'), r1_data_indices.get('inv')
@@ -393,10 +393,12 @@ def main():
         else:
             if not (sale_sheets_loaded and r1_main_sh):
                 messagebox.showwarning("Skipping Section 1", "Required sheets for SALE ↔ R1-B2B,SEZ,DE not found.")
+                send_event("recon_skipped_section", {"section": 1, "reason": "required_sheets_not_found"})
 
-    # -----------------------------------------------------------------------------
-    # 2) R1-EXP ↔ SALE (Optional Section)
-    # -----------------------------------------------------------------------------
+
+    # --- Section 2: R1-EXP ↔ SALE ---
+    # ... (Your existing reconciliation logic for Section 2) ...
+    # Add send_event calls similarly
     if r1_exp_sh and sale_sheets_loaded and sale_map:
         map_exp_to_sale = {'Invoice no': invoice_header_sale, 'Total Invoice value': 'Invoice value',
                            'Total Taxable Value': 'Taxable Value', 'Integrated Tax': 'Integrated Tax', 'Cess': 'Cess'}
@@ -418,6 +420,7 @@ def main():
         if exp_headers_ok and exp_data_indices.get('Invoice no'):
             any_reconciliation_performed = True;
             s2_executed = True
+            # (Rest of Section 2 logic)
             exp_invoice_map = {}
             exp_inv_col = exp_data_indices['Invoice no']
             for r_exp in range(3, r1_exp_sh.max_row + 1):
@@ -451,12 +454,13 @@ def main():
                         for c_idx in range(1, r1_exp_sh.max_column + 1): r1_exp_sh.cell(row=r_exp_miss,
                                                                                         column=c_idx).fill = MISSING_FILL
         else:
-            if not (r1_exp_sh and sale_sheets_loaded and sale_map): messagebox.showwarning("Skipping Section 2",
-                                                                                           "Required sheets/data for R1-EXP ↔ SALE not found or critical headers missing.")
+            if not (r1_exp_sh and sale_sheets_loaded and sale_map):
+                messagebox.showwarning("Skipping Section 2", "Required sheets/data for R1-EXP ↔ SALE not found or critical headers missing.")
+                send_event("recon_skipped_section", {"section": 2, "reason": "required_sheets_or_headers_missing"})
 
-    # -----------------------------------------------------------------------------
-    # 3) R1-B2BA ↔ SALE (Optional Section)
-    # -----------------------------------------------------------------------------
+
+    # --- Section 3: R1-B2BA ↔ SALE ---
+    # ... (Your existing reconciliation logic for Section 3) ...
     if r1_b2ba_sh and sale_sheets_loaded and sale_map:
         map_b2ba_to_sale = {'Recipient GSTIN/UIN': gstin_header_sale, 'Revised Invoice no': invoice_header_sale,
                             'Total Invoice value': 'Invoice value', 'Total Taxable Value': 'Taxable Value',
@@ -480,6 +484,7 @@ def main():
         if b2ba_headers_ok and b2ba_data_indices.get('Revised Invoice no'):
             any_reconciliation_performed = True;
             s3_executed = True
+            # (Rest of Section 3 logic)
             b2ba_invoice_map = {}
             b2ba_inv_col = b2ba_data_indices['Revised Invoice no']
             for r_b2ba in range(3, r1_b2ba_sh.max_row + 1):
@@ -530,8 +535,10 @@ def main():
                         for c_idx in range(1, r1_b2ba_sh.max_column + 1): r1_b2ba_sh.cell(row=r_b2ba_miss,
                                                                                           column=c_idx).fill = MISSING_FILL
         else:
-            if not (r1_b2ba_sh and sale_sheets_loaded and sale_map): messagebox.showwarning("Skipping Section 3",
-                                                                                            "Required sheets/data for R1-B2BA ↔ SALE not found or critical headers missing.")
+            if not (r1_b2ba_sh and sale_sheets_loaded and sale_map):
+                messagebox.showwarning("Skipping Section 3", "Required sheets/data for R1-B2BA ↔ SALE not found or critical headers missing.")
+                send_event("recon_skipped_section", {"section": 3, "reason": "required_sheets_or_headers_missing"})
+
 
     if sale_sheets_loaded and (s1_executed or s2_executed or s3_executed):
         for sale_sh in sale_sheets_loaded:
@@ -539,9 +546,8 @@ def main():
                 add_totals_to_sheet(sale_sh, sale_data_indices[sale_sh.title], sale_diff_indices[sale_sh.title], 'inv',
                                     'gstin')
 
-    # -----------------------------------------------------------------------------
-    # 4) 2B-B2B ↔ PUR-Total (Optional Section)
-    # -----------------------------------------------------------------------------
+    # --- Section 4: 2B-B2B ↔ PUR-Total ---
+    # ... (Your existing reconciliation logic for Section 4) ...
     pur_data_indices_s4, pur_diff_indices_s4 = {}, {}
     if gstr2b_b2b_sh and pur_total_sh:
         map_2b_to_pur = {'GSTIN of supplier': 'GSTIN/UIN of Supplier', 'Invoice number': 'Supplier Invoice number',
@@ -600,6 +606,7 @@ def main():
         if s4_headers_ok and b2b_data_indices_s4.get('Invoice number') and pur_data_indices_s4.get('Invoice number'):
             any_reconciliation_performed = True;
             s4_executed = True
+            # (Rest of Section 4 logic)
             b2b_inv_map_s4, pur_inv_map_s4 = {}, {}
             inv_2b_col, inv_pur_col = b2b_data_indices_s4['Invoice number'], pur_data_indices_s4['Invoice number']
 
@@ -701,16 +708,17 @@ def main():
                         cell.value = diff_val;
                         cell.font = Font(bold=True, color="00008B")
 
-            if s4_executed and inv_pur_col:  # Check inv_pur_col exists before using it for add_totals_to_sheet
+            if s4_executed and inv_pur_col:
                 add_totals_to_sheet(pur_total_sh, pur_data_indices_s4, pur_diff_indices_s4, 'Invoice number',
                                     'gstin_key')
         else:
-            if not (gstr2b_b2b_sh and pur_total_sh): messagebox.showwarning("Skipping Section 4",
-                                                                            "Required sheets for 2B-B2B ↔ PUR-Total not found.")
+            if not (gstr2b_b2b_sh and pur_total_sh):
+                messagebox.showwarning("Skipping Section 4", "Required sheets for 2B-B2B ↔ PUR-Total not found.")
+                send_event("recon_skipped_section", {"section": 4, "reason": "required_sheets_not_found"})
 
-    # -----------------------------------------------------------------------------
-    # 5) R1-CDNR ↔ CREDIT-R (Optional Section)
-    # -----------------------------------------------------------------------------
+
+    # --- Section 5: R1-CDNR ↔ CREDIT-R ---
+    # ... (Your existing reconciliation logic for Section 5) ...
     credit_r_data_indices_s5, credit_r_diff_indices_s5 = {}, {}
     if r1_cdnr_sh and credit_r_sh:
         r1_cdnr_note_header = "Note Number"
@@ -793,6 +801,7 @@ def main():
         if s5_headers_ok and r1_cdnr_data_indices_s5.get('note_num') and credit_r_data_indices_s5.get('note_num'):
             any_reconciliation_performed = True;
             s5_executed = True
+            # (Rest of Section 5 logic)
             r1_cdnr_map_s5 = {}
             cdnr_note_col = r1_cdnr_data_indices_s5['note_num']
             for r_cdnr in range(3, r1_cdnr_sh.max_row + 1):
@@ -828,7 +837,7 @@ def main():
 
                 for cdnr_hdr, credit_hdr in map_cdnr_to_credit_r_numeric.items():
                     cdnr_val_col = r1_cdnr_data_indices_s5.get(cdnr_hdr)
-                    credit_val_col = credit_r_data_indices_s5.get(cdnr_hdr)
+                    credit_val_col = credit_r_data_indices_s5.get(cdnr_hdr) # Should be cdnr_hdr for key
 
                     if cdnr_val_col and credit_val_col and cdnr_rows:
                         val_credit = get_numeric(credit_r_sh, credit_r_row, credit_val_col)
@@ -841,7 +850,7 @@ def main():
                             credit_r_sh.cell(row=credit_r_row, column=credit_val_col).fill = DIFF_FILL
                             current_diffs_s5[cdnr_hdr] = diff
                 if current_diffs_s5: differences_s5[note_key] = current_diffs_s5
-
+            # (Continue with the rest of your Section 5 logic)
             unmatched_cdnr_s5 = {k: v for k, v in r1_cdnr_map_s5.items() if k not in common_notes_s5}
             unmatched_credit_s5 = {k: v for k, v in credit_r_map_s5.items() if k not in common_notes_s5}
             cdnr_gstin_f, credit_gstin_f = r1_cdnr_data_indices_s5.get('gstin'), credit_r_data_indices_s5.get('gstin')
@@ -882,43 +891,63 @@ def main():
                 for r_m in cdnr_rs_m:
                     for c_idx in range(1, r1_cdnr_sh.max_column + 1): r1_cdnr_sh.cell(row=r_m,
                                                                                       column=c_idx).fill = MISSING_FILL
-            for credit_r_m_val in unmatched_credit_s5.values():  # credit_r_m_val is a row index
+            for credit_r_m_val in unmatched_credit_s5.values():
                 for c_idx in range(1, credit_r_sh.max_column + 1): credit_r_sh.cell(row=credit_r_m_val,
                                                                                     column=c_idx).fill = MISSING_FILL
 
             for note_key_d, diff_details in differences_s5.items():
                 if note_key_d not in credit_r_map_s5: continue
                 credit_r_inline_row = credit_r_map_s5[note_key_d]
-                for f_key_cdnr, diff_val in diff_details.items():
-                    diff_col_idx = credit_r_diff_indices_s5.get(f_key_cdnr)
+                for f_key_cdnr, diff_val in diff_details.items(): # f_key_cdnr is cdnr_hdr
+                    diff_col_idx = credit_r_diff_indices_s5.get(f_key_cdnr) # Use cdnr_hdr as key
                     if diff_col_idx:
                         cell = credit_r_sh.cell(row=credit_r_inline_row, column=diff_col_idx)
                         cell.value = diff_val;
                         cell.font = Font(bold=True, color="00008B")
-
-            if s5_executed and credit_r_data_indices_s5.get(
-                    'note_num'):  # Check 'note_num' exists for add_totals_to_sheet
-                add_totals_to_sheet(credit_r_sh, credit_r_data_indices_s5, credit_r_diff_indices_s5, 'note_num',
-                                    'gstin')
+            if s5_executed and credit_r_data_indices_s5.get('note_num'):
+                add_totals_to_sheet(credit_r_sh, credit_r_data_indices_s5, credit_r_diff_indices_s5, 'note_num', 'gstin')
         else:
-            if not (r1_cdnr_sh and credit_r_sh): messagebox.showwarning("Skipping Section 5",
-                                                                        "Required sheets R1-CDNR or CREDIT-R not found.")
+            if not (r1_cdnr_sh and credit_r_sh):
+                messagebox.showwarning("Skipping Section 5", "Required sheets R1-CDNR or CREDIT-R not found.")
+                send_event("recon_skipped_section", {"section": 5, "reason": "required_sheets_not_found"})
 
     # --- Save & Done ---
     if not any_reconciliation_performed:
         messagebox.showerror("No Reconciliation Performed",
                              "No reconciliation could be performed. Please check if the required sheets and headers are present in the workbook.")
+        send_event("recon_completed", {"status": "no_recon_performed", "sections_executed": {"s1":s1_executed, "s2":s2_executed, "s3":s3_executed, "s4":s4_executed, "s5":s5_executed}})
         return
 
     try:
         wb.save(outfile)
         messagebox.showinfo("Done", f"Reconciliation complete (if any sections ran) and saved to:\n{outfile}")
+        send_event("recon_completed", {"status": "success", "output_file": os.path.basename(outfile), "sections_executed": {"s1":s1_executed, "s2":s2_executed, "s3":s3_executed, "s4":s4_executed, "s5":s5_executed}})
     except PermissionError:
         messagebox.showerror("Save Error",
                              f"Could not save to '{outfile}'.\nPlease ensure the file is not open and you have write permissions.")
+        send_event("recon_error", {"type": "save_permission_error", "filename": os.path.basename(outfile), "traceback": traceback.format_exc()})
     except Exception as e:
         messagebox.showerror("Save Error", f"An unexpected error occurred while saving:\n{e}")
+        send_event("recon_error", {"type": "save_unexpected_error", "filename": os.path.basename(outfile), "error_message": str(e), "traceback": traceback.format_exc()})
 
 
 if __name__ == '__main__':
+    # Basic logging setup for Recon.py if run directly or if not configured by main app
+    if not logging.getLogger().hasHandlers():
+        # Attempt to create a log file in a user-writable directory if possible
+        log_dir_recon = os.path.join(os.path.expanduser("~"), "GSTProcessorLogs")
+        os.makedirs(log_dir_recon, exist_ok=True)
+        log_file_recon = os.path.join(log_dir_recon, "recon_script.log")
+        try:
+            logging.basicConfig(level=logging.INFO,
+                                format='%(asctime)s - Recon - %(levelname)s - %(message)s',
+                                filename=log_file_recon,
+                                filemode='a')
+        except Exception: # Fallback to console if file logging fails
+             logging.basicConfig(level=logging.INFO,
+                                format='%(asctime)s - Recon - %(levelname)s - %(message)s')
+
+    logging.info("Recon.py script started directly or called.")
     main()
+    logging.info("Recon.py script finished.")
+

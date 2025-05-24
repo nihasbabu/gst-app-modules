@@ -3,11 +3,12 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
+import logging
 import traceback  # For detailed error reporting
 
 # Assuming telemetry is in the same directory or accessible via PYTHONPATH
 try:
-    from telemetry import send_event
+    from utils.telemetry import send_event
 except ImportError:
     print("[WARN] Telemetry module not found. Telemetry will be disabled.")
 

@@ -10,7 +10,7 @@ from collections import Counter  # For update_process_button_state logic if need
 
 # Attempt to import processor functions and telemetry
 try:
-    from telemetry import send_event
+    from utils.telemetry import send_event
 except ImportError:
     logging.warning("telemetry module not found. Event sending will be disabled.")
 

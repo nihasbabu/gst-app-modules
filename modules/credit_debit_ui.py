@@ -23,8 +23,8 @@ except ImportError:
 
 # Optional: For telemetry (wrapped in try-except)
 try:
-    from telemetry import send_event
-    # from license_util import get_machine_guid # Assuming this is available if needed
+    from utils.telemetry import send_event
+    # from utils.license_util import get_machine_guid # Assuming this is available if needed
 except ImportError:
     print("[WARN] Telemetry or license_util module not found. Telemetry will be disabled.")
 

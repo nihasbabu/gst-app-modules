@@ -2,13 +2,14 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
 import datetime
+import logging
 import traceback  # For detailed error reporting
 from collections import Counter  # Import Counter
 
 # Assuming telemetry and license_util are in the same directory or accessible via PYTHONPATH
 try:
-    from telemetry import send_event
-    # from license_util import get_machine_guid # Assuming this is available if needed
+    from utils.telemetry import send_event
+    # from utils.license_util import get_machine_guid # Assuming this is available if needed
 except ImportError:
     print("[WARN] Telemetry or license_util module not found. Telemetry will be disabled.")
 
