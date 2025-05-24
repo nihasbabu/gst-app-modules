@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "bundle_url": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/dist/GST_Processor.exe",
+  "modules": {
+    "gstr1_ui.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr1_ui.py",
+    "gstr1_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr1_processor.py",
+    "gstr2b_ui.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr2b_ui.py",
+    "gstr2b_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr2b_processor.py",
+    "gstr3b_ui.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr3b_ui.py",
+    "gstr3b_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr3b_processor.py",
+    "sales_purchase_ui.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/sales_purchase_ui.py",
+    "sales_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/sales_processor.py",
+    "purchase_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/purchase_processor.py",
+    "credit_debit_ui.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/credit_debit_ui.py",
+    "credit_note_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/credit_note_processor.py",
+    "debit_note_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/debit_note_processor.py",
+    "Recon.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/Recon.py"
+  }
+}
