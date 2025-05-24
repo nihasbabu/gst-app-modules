@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "bundle_url": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/dist/GST_Processor.exe",
+  "bundle_url": null,
   "modules": {
     "gstr1_ui.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr1_ui.py",
     "gstr1_processor.py": "https://cdn.jsdelivr.net/gh/nihasbabu/gst-app-modules@main/modules/gstr1_processor.py",
