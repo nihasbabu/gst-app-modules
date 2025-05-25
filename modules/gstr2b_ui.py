@@ -19,7 +19,7 @@ except ImportError:
 
 try:
     # Ensure gstr2b_processor is in the python path or same directory
-    from processors.gstr2b_processor import process_gstr2b
+    from gstr2b_processor import process_gstr2b
 except ImportError as e:
     print(f"[ERROR] Could not import 'process_gstr2b': {e}. Ensure 'gstr2b_processor.py' is accessible.")
     messagebox.showerror("Import Error",
