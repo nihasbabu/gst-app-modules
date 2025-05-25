@@ -1,8 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import os
-import datetime
-import logging
 import traceback  # For detailed error reporting
 from collections import Counter  # Import Counter
 
@@ -17,7 +15,7 @@ except ImportError:
     def send_event(event_name, payload):  # Dummy function if telemetry is not available
         pass
 
-from gstr1_processor import process_gstr1, parse_filename, get_tax_period, parse_large_filename
+from processors.gstr1_processor import process_gstr1, parse_filename, get_tax_period, parse_large_filename
 
 
 class CustomErrorDialog(tk.Toplevel):
@@ -58,7 +56,7 @@ class CustomErrorDialog(tk.Toplevel):
 
         self.center_window()
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.wait_window(self)
+        self.wait_window(self)  # This makes the dialog modal
 
     def copy_error(self):
         try:
@@ -79,15 +77,15 @@ class CustomErrorDialog(tk.Toplevel):
 
 
 class GSTR1ProcessorUI:
-    def __init__(self, root_window):  # Renamed root to root_window for clarity
+    def __init__(self, root_window):
         self.root = root_window
         self.root.title("GSTR1 Processing")
-        self.root.geometry("500x480")
+        self.root.geometry("500x480")  # Initial geometry
         self.small_files = []
         self.large_files = []
         self.template_file = None
         self.excluded_sections_by_month = {}
-        self.base_height = 450
+        self.base_height = 450  # Base height without warnings
 
         tk.Label(self.root, text="GSTR1 Processing", font=("Arial", 16, "bold")).pack(pady=5)
         main_frame = tk.Frame(self.root)
@@ -119,12 +117,10 @@ class GSTR1ProcessorUI:
         tk.Button(large_btn_frame, text="+ Add", command=self.add_large_file).pack(side=tk.LEFT, padx=5)
         tk.Button(large_btn_frame, text="- Remove", command=self.delete_large_file).pack(side=tk.LEFT, padx=5)
 
-        # Warning Frame (initially hidden, packed before template_frame when shown)
         self.warning_frame = tk.Frame(self.root, borderwidth=1, relief="solid")
         self.warning_title = tk.Label(self.warning_frame, text="Warning !", fg="red", font=("Arial", 10, "underline"))
         self.warning_text = tk.Label(self.warning_frame, text="", fg="red", justify=tk.LEFT, wraplength=450)
         self.ignore_var = tk.BooleanVar()
-        # Changed text to match original
         self.ignore_check = tk.Checkbutton(self.warning_frame, text="Ignore All Warnings", variable=self.ignore_var,
                                            command=self.update_process_button)
 
@@ -240,6 +236,7 @@ class GSTR1ProcessorUI:
             for index in reversed(sorted(selections)):
                 file_path, month = self.small_files.pop(index)
                 self.small_listbox.delete(index)
+                # Clean up excluded_sections_by_month if no more files for that month exist
                 if month in self.excluded_sections_by_month and not any(m == month for _, m in self.small_files):
                     del self.excluded_sections_by_month[month]
             self.update_process_button()
@@ -274,7 +271,7 @@ class GSTR1ProcessorUI:
         selections = self.large_listbox.curselection()
         if selections:
             for index in reversed(sorted(selections)):
-                self.large_files.pop(index)
+                self.large_files.pop(index)  # No need to manage excluded_sections_by_month for large files here
                 self.large_listbox.delete(index)
             self.update_process_button()
 
@@ -290,37 +287,28 @@ class GSTR1ProcessorUI:
 
     def update_process_button(self):
         warnings = []
-
-        # --- Restored/Combined Warning Logic ---
         required_months_from_exclusions = set(self.excluded_sections_by_month.keys())
         selected_large_months = {month for _, month in self.large_files}
         selected_small_months = {month for _, month in self.small_files}
 
-        # Original warning: If exclusions imply a month needs a >500 file, but it's missing
         missing_large_for_excluded = required_months_from_exclusions - selected_large_months
         if missing_large_for_excluded:
             warnings.append(
-                f"'>500' JSON file for month(s) {', '.join(sorted(missing_large_for_excluded))} not selected.")
+                f"'>500' JSON file for month(s) {', '.join(sorted(missing_large_for_excluded))} not selected (implied by exclusions in <500 files).")
 
-        # Duplicate <500 files for the same month
         small_month_counts = Counter(month for _, month in self.small_files)
         duplicate_small = [month for month, count in small_month_counts.items() if count > 1]
         if duplicate_small:
             warnings.append(f"Multiple '<500' JSON files selected for month(s): {', '.join(sorted(duplicate_small))}")
 
-        # Duplicate >500 files for the same month
         large_month_counts = Counter(month for _, month in self.large_files)
         duplicate_large = [month for month, count in large_month_counts.items() if count > 1]
         if duplicate_large:
             warnings.append(f"Multiple '>500' JSON files selected for month(s): {', '.join(sorted(duplicate_large))}")
 
-        # Original warning: If >500 file is present, but corresponding <500 is missing (or no <500 files at all)
-        if self.large_files:  # Only check this if there are large files selected
+        if self.large_files:
             missing_small_for_large = selected_large_months - selected_small_months
-            # The condition "or not self.small_files" from original code seems to mean:
-            # if there are large files, AND (either specific small files are missing OR no small files at all are present)
-            # This can be simplified to just checking missing_small_for_large if we assume <500 is always needed if >500 is present.
-            if missing_small_for_large:  # Simplified this condition slightly from original
+            if missing_small_for_large:
                 months_str = ', '.join(sorted(missing_small_for_large))
                 warnings.append(
                     f"No '<500' JSON file for month(s) {months_str} (to accompany >500 files). Details from <500 JSON will be missing.")
@@ -329,19 +317,19 @@ class GSTR1ProcessorUI:
                     f"No '<500' JSON files selected. Details from <500 JSON will be missing for all >500 files.")
 
         has_files = bool(self.small_files or self.large_files)
-
         current_warning_text = "\n".join(warnings)
+
         if warnings:
             if not self.warning_frame.winfo_ismapped():
-                # Using original packing method, not `before=self.template_frame`
-                self.warning_frame.pack(pady=5, padx=10, fill=tk.X)
+                self.warning_frame.pack(pady=5, padx=10, fill=tk.X, before=self.template_frame)  # Pack before template
             self.warning_title.pack(pady=(5, 0))
             self.warning_text.config(text=current_warning_text)
             self.warning_text.pack(pady=(0, 5))
             self.ignore_check.pack(pady=2)
+
+            # Dynamically adjust window height based on number of warning lines
             num_warning_lines = current_warning_text.count('\n') + 1
-            # Original code used fixed +100, this dynamic one is generally better
-            extra_height = 60 + (num_warning_lines * 15)
+            extra_height = 60 + (num_warning_lines * 15)  # Approx 15px per line + padding
             self.root.geometry(f"500x{self.base_height + extra_height}")
 
             if self.ignore_var.get() and has_files:
@@ -351,10 +339,7 @@ class GSTR1ProcessorUI:
         else:
             if self.warning_frame.winfo_ismapped():
                 self.warning_frame.pack_forget()
-                self.warning_title.pack_forget()
-                self.warning_text.pack_forget()
-                self.ignore_check.pack_forget()
-            self.root.geometry(f"500x{self.base_height}")
+            self.root.geometry(f"500x{self.base_height}")  # Reset to base height
             if has_files:
                 self.process_btn.config(state=tk.NORMAL, bg="light green")
             else:
@@ -379,10 +364,14 @@ class GSTR1ProcessorUI:
         small_file_paths = [f for f, _ in self.small_files]
         large_files_map_for_processor = {}
         for file_path, month_key in self.large_files:
-            large_files_map_for_processor[month_key] = (file_path, [])
+            large_files_map_for_processor[month_key] = (
+            file_path, [])  # Assuming no specific exclusions for large files from UI yet
+
+        unexpected_details_list = []  # To store details of unexpected sections
 
         try:
-            process_gstr1(
+            # MODIFIED: process_gstr1 now returns workbook and unexpected_details
+            workbook, unexpected_details_list = process_gstr1(
                 small_file_paths,
                 large_files_map_for_processor,
                 self.excluded_sections_by_month,
@@ -391,22 +380,76 @@ class GSTR1ProcessorUI:
                 ignore_warnings=self.ignore_var.get()
             )
 
-            send_event("gstr1_complete", {
+            # --- Handle Frontend Message ---
+            success_message = f"GSTR1 report saved successfully at:\n{save_file}"
+            if unexpected_details_list:
+                warning_str_parts = [
+                    "\n\nWARNING: Processing completed, but the following unexpected sections were encountered and not extracted. Please inform the app manager:"]
+                for detail in unexpected_details_list:
+                    warning_str_parts.append(
+                        f"- Section '{detail['section_name']}' in file '{detail['filename']}' (Month: {detail.get('reporting_month', 'N/A')})")
+                success_message += "\n".join(warning_str_parts)
+
+            messagebox.showinfo("Success", success_message)
+
+            # --- Handle Backend Telemetry ---
+            completion_payload = {
                 "input_small_files_count": len(small_file_paths),
                 "input_large_files_count": len(large_files_map_for_processor),
                 "template_used": bool(self.template_file),
-                "output_file_extension": os.path.splitext(save_file)[1]
-            })
+                "output_file_extension": os.path.splitext(save_file)[1],
+                "status": "success"  # Explicitly add status
+            }
+            if unexpected_details_list:
+                completion_payload["unexpected_sections_found"] = True
+                # For telemetry, it's better to send a summary and perhaps a limited number of snippets
+                # or just the names and count to avoid overly large payloads.
+                # The snippet itself is already in unexpected_details_list.
+                completion_payload[
+                    "unexpected_section_details"] = unexpected_details_list  # Contains names and snippets
 
-            messagebox.showinfo("Success", f"GSTR1 report saved successfully at:\n{save_file}")
+                manager_alert_parts = ["Unexpected sections encountered:"]
+                for detail in unexpected_details_list:
+                    manager_alert_parts.append(
+                        f"Section '{detail['section_name']}' in file '{detail['filename']}' (Month: {detail.get('reporting_month', 'N/A')}). Snippet included in details.")
+                completion_payload["manager_alert_unexpected_sections"] = " ".join(manager_alert_parts)
+
+            send_event("gstr1_complete", completion_payload)
+
+            # Reset UI elements
             self.small_files.clear()
             self.large_files.clear()
             self.excluded_sections_by_month.clear()
             self.small_listbox.delete(0, tk.END)
             self.large_listbox.delete(0, tk.END)
             self.clear_template()
-            self.ignore_var.set(False)
-            self.update_process_button()
+            self.ignore_var.set(False)  # Reset ignore warnings checkbox
+            self.update_process_button()  # This will also reset window height if warnings are cleared
+
+        except ValueError as ve:  # Catch specific ValueError from processor (e.g., no data)
+            detailed_error_info = traceback.format_exc()
+            print(f"--- PROCESSING ERROR (ValueError) ---")
+            print(detailed_error_info)
+            print(f"------------------------------------")
+            send_event("error", {
+                "module": "gstr1_ui.process_files", "error_type": "ValueError", "error_message": str(ve),
+                "input_small_files_count": len(small_file_paths),
+                "input_large_files_count": len(large_files_map_for_processor),
+            })
+            # Show a more user-friendly message for ValueError if it's about no data
+            if "No data found" in str(ve) and unexpected_details_list:
+                no_data_warning_message = f"No data was extracted for standard GSTR1 sections.\n\nHowever, the following unexpected sections were found but not processed:\n"
+                for detail in unexpected_details_list:
+                    no_data_warning_message += f"- Section '{detail['section_name']}' in file '{detail['filename']}'\n"
+                no_data_warning_message += "\nPlease inform the app manager."
+                CustomErrorDialog(self.root, "Processing Information", no_data_warning_message, detailed_error_info)
+            elif "No data found" in str(ve):
+                CustomErrorDialog(self.root, "Processing Error",
+                                  f"No data found in the provided JSON files for processing.\n\n{str(ve)}",
+                                  detailed_error_info)
+            else:
+                CustomErrorDialog(self.root, "Processing Error",
+                                  f"An error occurred during processing:\n\nValueError: {str(ve)}", detailed_error_info)
 
         except Exception as e:
             detailed_error_info = traceback.format_exc()
@@ -420,14 +463,17 @@ class GSTR1ProcessorUI:
                 "error_message": str(e),
                 "input_small_files_count": len(small_file_paths),
                 "input_large_files_count": len(large_files_map_for_processor),
+                # Optionally, include a hash or part of the traceback if allowed by telemetry policy
+                # "traceback_snippet": detailed_error_info[-1000:] # Last 1000 chars
             })
 
             CustomErrorDialog(self.root,
                               "Processing Error",
-                              f"An error occurred during processing:\n\n{type(e).__name__}: {str(e)}\n\nSee console for full traceback if run from command line.",
+                              f"An unexpected error occurred during processing:\n\n{type(e).__name__}: {str(e)}\n\nSee console for full traceback if run from command line.",
                               detailed_error_info)
         finally:
             self.process_btn.config(text="Process GSTR1")
+            # update_process_button needs to be called to re-enable button if files are still present
             self.update_process_button()
 
 
