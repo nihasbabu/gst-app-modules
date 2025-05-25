@@ -15,7 +15,7 @@ except ImportError:
     def send_event(event_name, payload):  # Dummy function if telemetry is not available
         pass
 
-from processors.gstr1_processor import process_gstr1, parse_filename, get_tax_period, parse_large_filename
+from gstr1_processor import process_gstr1, parse_filename, get_tax_period, parse_large_filename
 
 
 class CustomErrorDialog(tk.Toplevel):
