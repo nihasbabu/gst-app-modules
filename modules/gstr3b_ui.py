@@ -135,7 +135,8 @@ class GSTR3BProcessorUI:
             font=("Arial", 12),
             command=self.process_files,
             state=tk.DISABLED,
-            bg="light grey"
+            bg="light grey",
+            width = 20
         )
         self.process_btn.pack(pady=10)
 
@@ -219,7 +220,7 @@ class GSTR3BProcessorUI:
             return
 
         self.process_btn.config(text="Processing...", state=tk.DISABLED, bg="light grey")
-        self.root.update_idletasks()
+        self.process_btn.update()
 
         try:
             result_message = process_gstr3b(self.json_files, self.template_file, save_file)

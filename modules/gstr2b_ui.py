@@ -133,14 +133,11 @@ class GSTR2BProcessorUI:
 
         # Template File Section
         template_frame = tk.Frame(root)
-        template_frame.pack(pady=5, fill=tk.X, padx=10)  # Fill X for better alignment
+        template_frame.pack(pady=5)
         tk.Label(template_frame, text="Template Excel (Optional):").pack(side=tk.LEFT)
-
         self.template_label_var = tk.StringVar(value="No file selected")
-        self.template_label = tk.Label(template_frame, textvariable=self.template_label_var, anchor="w",
-                                       width=25)  # Use anchor and width
-        self.template_label.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-
+        self.template_label = tk.Label(template_frame, textvariable=self.template_label_var)
+        self.template_label.pack(side=tk.LEFT, padx=5)
         tk.Button(template_frame, text="Select", command=self.select_template, width=6).pack(side=tk.LEFT, padx=(0, 2))
         tk.Button(template_frame, text="Clear", command=self.clear_template, width=6).pack(side=tk.LEFT, padx=(0, 2))
 
@@ -249,7 +246,7 @@ class GSTR2BProcessorUI:
             return
 
         self.process_btn.config(text="Processing...", state=tk.DISABLED, bg="light grey")
-        self.root.update_idletasks()  # Ensure UI updates before long operation
+        self.process_btn.update()
 
         base_message_from_processor = ""
         unexpected_details_list = []

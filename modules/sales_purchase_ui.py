@@ -165,15 +165,15 @@ class SalesPurchaseProcessorUI:
 
         # Template File Section
         self.template_frame = tk.Frame(root)  # Made template_frame an instance variable
-        self.template_frame.pack(pady=5, fill=tk.X, padx=10)
+        self.template_frame.pack(pady=5)
         tk.Label(self.template_frame, text="Template Excel File (Optional):").pack(side=tk.LEFT)
-        self.template_label = tk.Label(self.template_frame, text="No file selected", width=25, anchor="w")
-        self.template_label.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.template_label = tk.Label(self.template_frame, text="No file selected")
+        self.template_label.pack(side=tk.LEFT, padx=5)
         tk.Button(self.template_frame, text="Select", command=self.select_template).pack(side=tk.LEFT, padx=2)
         tk.Button(self.template_frame, text="Clear", command=self.clear_template).pack(side=tk.LEFT, padx=2)
 
         # Process Button
-        self.process_btn = tk.Button(root, text="Process Sales / Purchase", font=("Arial", 12),
+        self.process_btn = tk.Button(root, text="Process Sales / Purchase", font=("Arial", 12), width=25,
                                      command=self.process_files, state=tk.DISABLED, bg="light grey")
         self.process_btn.pack(pady=10)
 
