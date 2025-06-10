@@ -28,10 +28,10 @@ BOLD_FONT = Font(bold=True)  # Standard bold font
 
 # Configuration for summing main document values uniquely in detail sheets
 GSTR2B_MAIN_VALUE_CONFIG = {
-    "2B-B2B": {"value_col": "Invoice Value", "id_col": "Invoice number"},
-    "2B-B2BA": {"value_col": "Invoice Value", "id_col": "Invoice number"},
-    "2B-B2B(ITC_Rej)": {"value_col": "Invoice Value", "id_col": "Invoice number"},
-    "2B-CDNR": {"value_col": "Note Value", "id_col": "Note number"},
+    "2B-B2B": {"value_col": "Invoice Value", "id_col": "Invoice Number"},
+    "2B-B2BA": {"value_col": "Invoice Value", "id_col": "Invoice Number"},
+    "2B-B2B(ITC_Rej)": {"value_col": "Invoice Value", "id_col": "Invoice Number"},
+    "2B-CDNR": {"value_col": "Note Value", "id_col": "Note Number"},
     "2B-IMPG": {"value_col": "Calculated Invoice Value", "id_col": "Bill of Entry Number"},
     "2B-B2BA(cum)": {"value_col": "Calculated Invoice Value", "id_col": None}  # Direct sum for this cumulative sheet
 }
@@ -120,10 +120,10 @@ def extract_b2b(data, filing_period):
         for inv in invoices:
             if not isinstance(inv, dict): continue
             base_row = {
-                "GSTIN of supplier": ctin, "Trade/legal name": trdnm, "Invoice number": inv.get("inum", ""),
-                "Invoice type": inv.get("typ", ""), "Invoice Date": inv.get("dt", ""),
+                "GSTIN/UIN of Supplier": ctin, "Trade/Legal Name": trdnm, "Invoice Number": inv.get("inum", ""),
+                "Invoice Type": inv.get("typ", ""), "Invoice Date": inv.get("dt", ""),
                 "Invoice Value": get_numeric_value(inv, "val"),
-                "Place of supply": parse_number(inv.get("pos", "0"), int_no_dec=True),
+                "Place of Supply": parse_number(inv.get("pos", "0"), int_no_dec=True),
                 "Supply Attract Reverse Charge": inv.get("rev", ""),
                 "GSTR Period": get_tax_period(supplier.get("supprd", "")),
                 "GSTR Filing Date": supplier.get("supfildt", ""),
@@ -173,11 +173,11 @@ def extract_b2ba(data, filing_period):
         for inv in invoices:
             if not isinstance(inv, dict): continue
             base_row = {
-                "GSTIN of supplier": ctin, "Trade/legal name": supplier.get("trdnm", ""),
-                "Original Invoice number": inv.get("oinum", ""), "Original Invoice Date": inv.get("oidt", ""),
-                "Invoice number": inv.get("inum", ""), "Invoice Date": inv.get("dt", ""),
-                "Invoice type": inv.get("typ", ""), "Invoice Value": get_numeric_value(inv, "val"),
-                "Place of supply": parse_number(inv.get("pos", "0"), int_no_dec=True),
+                "GSTIN/UIN of Supplier": ctin, "Trade/Legal Name": supplier.get("trdnm", ""),
+                "Original Invoice Number": inv.get("oinum", ""), "Original Invoice Date": inv.get("oidt", ""),
+                "Invoice Number": inv.get("inum", ""), "Invoice Date": inv.get("dt", ""),
+                "Invoice Type": inv.get("typ", ""), "Invoice Value": get_numeric_value(inv, "val"),
+                "Place of Supply": parse_number(inv.get("pos", "0"), int_no_dec=True),
                 "Supply Attract Reverse Charge": inv.get("rev", ""),
                 "GSTR Period": get_tax_period(supplier.get("supprd", "")),
                 "GSTR Filing Date": supplier.get("supfildt", ""),
@@ -221,8 +221,8 @@ def extract_b2ba_cum(data, filing_period):
     for supplier in b2ba_cum_data:
         if not isinstance(supplier, dict): continue
         row = {
-            "GSTIN of supplier": supplier.get("ctin", ""),
-            "Trade/legal name": supplier.get("trdnm", ""),
+            "GSTIN/UIN of Supplier": supplier.get("ctin", ""),
+            "Trade/Legal Name": supplier.get("trdnm", ""),
             "Total Documents": parse_number(supplier.get("ttldocs", 0), int_no_dec=True),
             "Total Taxable Value": get_numeric_value(supplier, "txval"),
             "Integrated Tax": get_numeric_value(supplier, "igst"),
@@ -253,11 +253,11 @@ def extract_cdnr(data, filing_period):
         for note in notes:
             if not isinstance(note, dict): continue
             base_row = {
-                "GSTIN of supplier": ctin, "Trade/legal name": supplier.get("trdnm", ""),
-                "Note number": note.get("ntnum", ""), "Note type": note.get("typ", ""),
-                "Note supply type": note.get("suptyp", ""), "Note Date": note.get("dt", ""),
+                "GSTIN/UIN of Supplier": ctin, "Trade/Legal Name": supplier.get("trdnm", ""),
+                "Note Number": note.get("ntnum", ""), "Note Type": note.get("typ", ""),
+                "Note Supply Type": note.get("suptyp", ""), "Note Date": note.get("dt", ""),
                 "Note Value": get_numeric_value(note, "val"),
-                "Place of supply": parse_number(note.get("pos", "0"), int_no_dec=True),
+                "Place of Supply": parse_number(note.get("pos", "0"), int_no_dec=True),
                 "Supply Attract Reverse Charge": note.get("rev", ""),
                 "GSTR Period": get_tax_period(supplier.get("supprd", "")),
                 "GSTR Filing Date": supplier.get("supfildt", ""),
@@ -328,10 +328,10 @@ def extract_b2b_itc_rej(data, filing_period):
         for inv in invoices:
             if not isinstance(inv, dict): continue
             base_row = {
-                "GSTIN of supplier": ctin, "Trade/legal name": supplier.get("trdnm", ""),
-                "Invoice number": inv.get("inum", ""), "Invoice type": inv.get("typ", ""),
+                "GSTIN/UIN of Supplier": ctin, "Trade/Legal Name": supplier.get("trdnm", ""),
+                "Invoice Number": inv.get("inum", ""), "Invoice Type": inv.get("typ", ""),
                 "Invoice Date": inv.get("dt", ""), "Invoice Value": get_numeric_value(inv, "val"),
-                "Place of supply": parse_number(inv.get("pos", "0"), int_no_dec=True),
+                "Place of Supply": parse_number(inv.get("pos", "0"), int_no_dec=True),
                 "GSTR Period": get_tax_period(supplier.get("supprd", "")),
                 "GSTR Filing Date": supplier.get("supfildt", ""),
                 "GSTR Filing Period": filing_period, "Source": inv.get("srctyp", "")
@@ -407,14 +407,14 @@ def _add_total_row_to_gstr2b_detail_sheet(ws, sheet_key, rows_data, column_heade
     # Write the total row
     # Determine where to put "Total" label, typically first or second column
     label_col_index = 1  # Default to first column
-    if len(column_headers_for_sheet) > 1 and "Trade/legal name" in column_headers_for_sheet:
+    if len(column_headers_for_sheet) > 1 and "Trade/Legal Name" in column_headers_for_sheet:
         try:
-            label_col_index = column_headers_for_sheet.index("Trade/legal name") + 1
+            label_col_index = column_headers_for_sheet.index("Trade/Legal Name") + 1
         except ValueError:
             pass  # Keep default if not found
-    elif len(column_headers_for_sheet) > 1 and "GSTIN of supplier" in column_headers_for_sheet:
+    elif len(column_headers_for_sheet) > 1 and "GSTIN/UIN of Supplier" in column_headers_for_sheet:
         try:
-            label_col_index = column_headers_for_sheet.index("GSTIN of supplier") + 1
+            label_col_index = column_headers_for_sheet.index("GSTIN/UIN of Supplier") + 1
         except ValueError:
             pass
 
@@ -508,7 +508,7 @@ def create_summary_sheets(wb, combined_data):
         fp = r.get("GSTR Filing Period")
         if not fp or fp not in all_filing_periods_sorted: continue
         inv_val = get_numeric_value(r, "Invoice Value")
-        inv_num = r.get("Invoice number")
+        inv_num = r.get("Invoice Number")
         target_summary_key = None
         unique_set_for_inv_val = None
 
@@ -541,7 +541,7 @@ def create_summary_sheets(wb, combined_data):
         fp = r.get("GSTR Filing Period")
         if not fp or fp not in all_filing_periods_sorted: continue
         inv_val = get_numeric_value(r, "Invoice Value")
-        inv_num = r.get("Invoice number")  # Amended invoice number
+        inv_num = r.get("Invoice Number")  # Amended invoice number
         target_summary_key = None
         unique_set_for_inv_val = None
 
@@ -588,8 +588,8 @@ def create_summary_sheets(wb, combined_data):
         fp = r.get("GSTR Filing Period")
         if not fp or fp not in all_filing_periods_sorted: continue
         note_val = get_numeric_value(r, "Note Value")
-        note_num = r.get("Note number")
-        note_type = r.get("Note type", "").upper()
+        note_num = r.get("Note Number")
+        note_type = r.get("Note Type", "").upper()
         target_key = None
         unique_set_for_note_val = None
 
@@ -655,7 +655,7 @@ def create_summary_sheets(wb, combined_data):
         if not fp or fp not in all_filing_periods_sorted: continue
         target_month_summary = agg_summaries["2B-Summary-B2B(ITC_Rej)"][fp]
         inv_val = get_numeric_value(r, "Invoice Value")
-        inv_num = r.get("Invoice number")
+        inv_num = r.get("Invoice Number")
 
         if inv_num not in unique_inv_b2b_rej.setdefault(fp, set()):
             target_month_summary["Invoice Value"] += inv_val
@@ -724,7 +724,7 @@ def create_summary_sheets(wb, combined_data):
 
         if sheet_key_name in wb.sheetnames: wb.remove(wb[sheet_key_name])
         ws = wb.create_sheet(sheet_key_name)
-        ws.freeze_panes = "B3"  # Freeze based on column B, assuming Month is A
+        ws.freeze_panes = "B3"
 
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(summary_display_headers))
         title_cell = ws.cell(row=1, column=1, value=section_titles_summary.get(sheet_key_name, sheet_key_name))
@@ -779,27 +779,27 @@ def create_excel_report(data_dict, save_path, template_path=None):
     }
 
     column_headers_detail = {
-        "2B-B2B": ["GSTIN of supplier", "Trade/legal name", "Invoice number", "Invoice Part", "Invoice type",
-                   "Tax Rate", "Invoice Date", "Invoice Value", "Place of supply", "Supply Attract Reverse Charge",
+        "2B-B2B": ["GSTIN/UIN of Supplier", "Trade/Legal Name", "Invoice Number", "Invoice Part", "Invoice Type",
+                   "Tax Rate", "Invoice Date", "Invoice Value", "Place of Supply", "Supply Attract Reverse Charge",
                    "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess", "GSTR Period",
                    "GSTR Filing Date", "GSTR Filing Period", "ITC Availability", "Reason", "Source"],
-        "2B-B2BA": ["GSTIN of supplier", "Trade/legal name", "Original Invoice number", "Original Invoice Date",
-                    "Invoice number", "Invoice Part", "Invoice Date", "Invoice type", "Tax Rate", "Invoice Value",
-                    "Place of supply", "Supply Attract Reverse Charge", "Total Taxable Value", "Integrated Tax",
+        "2B-B2BA": ["GSTIN/UIN of Supplier", "Trade/Legal Name", "Original Invoice Number", "Original Invoice Date",
+                    "Invoice Number", "Invoice Part", "Invoice Date", "Invoice Type", "Tax Rate", "Invoice Value",
+                    "Place of Supply", "Supply Attract Reverse Charge", "Total Taxable Value", "Integrated Tax",
                     "Central Tax", "State/UT Tax", "Cess", "GSTR Period",
                     "GSTR Filing Date", "GSTR Filing Period", "ITC Availability", "Reason"],
-        "2B-B2BA(cum)": ["GSTIN of supplier", "Trade/legal name", "Total Documents", "Calculated Invoice Value",
+        "2B-B2BA(cum)": ["GSTIN/UIN of Supplier", "Trade/Legal Name", "Total Documents", "Calculated Invoice Value",
                          "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess", "GSTR Period",
                          "GSTR Filing Date", "GSTR Filing Period"],
-        "2B-CDNR": ["GSTIN of supplier", "Trade/legal name", "Note number", "Note Part", "Note type", "Tax Rate",
-                    "Note supply type", "Note Date", "Note Value", "Place of supply", "Supply Attract Reverse Charge",
+        "2B-CDNR": ["GSTIN/UIN of Supplier", "Trade/Legal Name", "Note Number", "Note Part", "Note Type", "Tax Rate",
+                    "Note Supply Type", "Note Date", "Note Value", "Place of Supply", "Supply Attract Reverse Charge",
                     "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess", "GSTR Period",
                     "GSTR Filing Date", "GSTR Filing Period", "ITC Availability", "Reason"],
         "2B-IMPG": ["ICEGATE Reference Date", "Port Code", "Bill of Entry Number", "Bill of Entry Date",
                     "Calculated Invoice Value", "Taxable Value", "Integrated Tax", "Cess", "Record Date",
                     "GSTR Filing Period", "Amended (Yes)"],
-        "2B-B2B(ITC_Rej)": ["GSTIN of supplier", "Trade/legal name", "Invoice number", "Invoice Part", "Invoice type",
-                            "Tax Rate", "Invoice Date", "Invoice Value", "Place of supply",
+        "2B-B2B(ITC_Rej)": ["GSTIN/UIN of Supplier", "Trade/Legal Name", "Invoice Number", "Invoice Part", "Invoice Type",
+                            "Tax Rate", "Invoice Date", "Invoice Value", "Place of Supply",
                             # "Supply Attract Reverse Charge", # Typically not applicable or shown for rejected
                             "Total Taxable Value", "Integrated Tax", "Central Tax",
                             "State/UT Tax", "Cess", "GSTR Period", "GSTR Filing Date", "GSTR Filing Period", "Source"]
@@ -813,13 +813,13 @@ def create_excel_report(data_dict, save_path, template_path=None):
                    "GSTR Filing Date": "dd-mm-yyyy",
                    "Total Taxable Value": INDIAN_FORMAT_GSTR2B, "Integrated Tax": INDIAN_FORMAT_GSTR2B,
                    "Central Tax": INDIAN_FORMAT_GSTR2B, "State/UT Tax": INDIAN_FORMAT_GSTR2B,
-                   "Cess": INDIAN_FORMAT_GSTR2B, "Tax Rate": "#,##0.00", "Place of supply": "0"},
+                   "Cess": INDIAN_FORMAT_GSTR2B, "Tax Rate": "#,##0.00", "Place of Supply": "0"},
         "2B-B2BA": {"Original Invoice Date": "dd-mm-yyyy", "Invoice Date": "dd-mm-yyyy",
                     "GSTR Filing Date": "dd-mm-yyyy",
                     "Invoice Value": INDIAN_FORMAT_GSTR2B, "Total Taxable Value": INDIAN_FORMAT_GSTR2B,
                     "Integrated Tax": INDIAN_FORMAT_GSTR2B, "Central Tax": INDIAN_FORMAT_GSTR2B,
                     "State/UT Tax": INDIAN_FORMAT_GSTR2B, "Cess": INDIAN_FORMAT_GSTR2B, "Tax Rate": "#,##0.00",
-                    "Place of supply": "0"},
+                    "Place of Supply": "0"},
         "2B-B2BA(cum)": {"Total Documents": "#,##0", "Calculated Invoice Value": INDIAN_FORMAT_GSTR2B,
                          "GSTR Filing Date": "dd-mm-yyyy",
                          "Total Taxable Value": INDIAN_FORMAT_GSTR2B, "Integrated Tax": INDIAN_FORMAT_GSTR2B,
@@ -828,7 +828,7 @@ def create_excel_report(data_dict, save_path, template_path=None):
         "2B-CDNR": {"Note Date": "dd-mm-yyyy", "Note Value": INDIAN_FORMAT_GSTR2B, "GSTR Filing Date": "dd-mm-yyyy",
                     "Total Taxable Value": INDIAN_FORMAT_GSTR2B, "Integrated Tax": INDIAN_FORMAT_GSTR2B,
                     "Central Tax": INDIAN_FORMAT_GSTR2B, "State/UT Tax": INDIAN_FORMAT_GSTR2B,
-                    "Cess": INDIAN_FORMAT_GSTR2B, "Tax Rate": "#,##0.00", "Place of supply": "0"},
+                    "Cess": INDIAN_FORMAT_GSTR2B, "Tax Rate": "#,##0.00", "Place of Supply": "0"},
         "2B-IMPG": {"ICEGATE Reference Date": "dd-mm-yyyy", "Bill of Entry Date": "dd-mm-yyyy",
                     "Record Date": "dd-mm-yyyy",
                     "Calculated Invoice Value": INDIAN_FORMAT_GSTR2B,
@@ -838,7 +838,7 @@ def create_excel_report(data_dict, save_path, template_path=None):
                             "GSTR Filing Date": "dd-mm-yyyy",
                             "Total Taxable Value": INDIAN_FORMAT_GSTR2B, "Integrated Tax": INDIAN_FORMAT_GSTR2B,
                             "Central Tax": INDIAN_FORMAT_GSTR2B, "State/UT Tax": INDIAN_FORMAT_GSTR2B,
-                            "Cess": INDIAN_FORMAT_GSTR2B, "Tax Rate": "#,##0.00", "Place of supply": "0"}
+                            "Cess": INDIAN_FORMAT_GSTR2B, "Tax Rate": "#,##0.00", "Place of Supply": "0"}
     }
     for key in list(column_formats_map_detail.keys()):  # Create _sws formats
         if key in ["2B-B2B", "2B-CDNR"]:
@@ -875,7 +875,7 @@ def create_excel_report(data_dict, save_path, template_path=None):
 
         if sheet_name in wb.sheetnames: wb.remove(wb[sheet_name])
         ws = wb.create_sheet(sheet_name)
-        ws.freeze_panes = "C3"  # Freeze after GSTIN and Name usually
+        ws.freeze_panes = "B3"
 
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers_list_for_sheet))
         title_cell = ws.cell(row=1, column=1, value=section_titles_detail.get(sheet_name, sheet_name))
@@ -941,7 +941,7 @@ def create_excel_report(data_dict, save_path, template_path=None):
                     dt_obj = datetime.datetime.strptime(date_str, "%d-%m-%Y")
                 except ValueError:  # Handle other potential date formats if necessary or log warning
                     pass
-            return (r_item.get("Trade/legal name", "").lower(), dt_obj)
+            return (r_item.get("Trade/Legal Name", "").lower(), dt_obj)
 
         sws_b2b_data.sort(key=b2b_sort_key_func)
         if sws_b2b_data: write_detail_sheet("2B-B2B_sws", sws_b2b_data, column_headers_detail["2B-B2B_sws"])
@@ -957,7 +957,7 @@ def create_excel_report(data_dict, save_path, template_path=None):
                     dt_obj = datetime.datetime.strptime(date_str, "%d-%m-%Y")
                 except ValueError:
                     pass
-            return (r_item.get("Trade/legal name", "").lower(), dt_obj)
+            return (r_item.get("Trade/Legal Name", "").lower(), dt_obj)
 
         sws_cdnr_data.sort(key=cdnr_sort_key_func)
         if sws_cdnr_data: write_detail_sheet("2B-CDNR_sws", sws_cdnr_data, column_headers_detail["2B-CDNR_sws"])

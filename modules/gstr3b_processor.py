@@ -99,7 +99,7 @@ def extract_section_3_1(data):
         if not isinstance(section_data, dict): section_data = {}
         row = {
             "Tax Period": tax_period,
-            "Total taxable value": get_numeric_value(section_data, "txval"),
+            "Total Taxable Value": get_numeric_value(section_data, "txval"),
             "Integrated Tax": get_numeric_value(section_data, "iamt"),
             "Central Tax": get_numeric_value(section_data, "camt"),
             "State/UT Tax": get_numeric_value(section_data, "samt"),
@@ -109,7 +109,7 @@ def extract_section_3_1(data):
     for sheet_name in section_mapping:
         if not extracted_data[sheet_name]:
             extracted_data[sheet_name].append({
-                "Tax Period": tax_period, "Total taxable value": 0.00, "Integrated Tax": 0.00,
+                "Tax Period": tax_period, "Total Taxable Value": 0.00, "Integrated Tax": 0.00,
                 "Central Tax": 0.00, "State/UT Tax": 0.00, "Cess": 0.00
             })
     return extracted_data
@@ -133,14 +133,14 @@ def extract_section_3_2(data):
             if not isinstance(item, dict): continue
             row = {
                 "Tax Period": tax_period,
-                "Total taxable value": get_numeric_value(item, "txval"),
+                "Total Taxable Value": get_numeric_value(item, "txval"),
                 "Integrated Tax": get_numeric_value(item, "iamt")
             }
             extracted_data[sheet_name].append(row)
     for sheet_name in section_mapping:
         if not extracted_data[sheet_name]:
             extracted_data[sheet_name].append({
-                "Tax Period": tax_period, "Total taxable value": 0.00, "Integrated Tax": 0.00
+                "Tax Period": tax_period, "Total Taxable Value": 0.00, "Integrated Tax": 0.00
             })
     return extracted_data
 
@@ -490,18 +490,18 @@ def create_excel_report(data_dict, save_path, template_path=None):
     }
 
     column_headers_map = {  # Renamed column_headers to column_headers_map
-        "OSUP-Detail": ["Tax Period", "Total taxable value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
-        "OSUP-Zero": ["Tax Period", "Total taxable value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
-        "OSUP-Nil,Exmp": ["Tax Period", "Total taxable value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
-        "ISUP-Rev": ["Tax Period", "Total taxable value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
-        "OSUP-NonGST": ["Tax Period", "Total taxable value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
-        "InterSUP-Unreg": ["Tax Period", "Total taxable value", "Integrated Tax"],
-        "InterSUP-Comp": ["Tax Period", "Total taxable value", "Integrated Tax"],
-        "InterSUP-UIN": ["Tax Period", "Total taxable value", "Integrated Tax"],
+        "OSUP-Detail": ["Tax Period", "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
+        "OSUP-Zero": ["Tax Period", "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
+        "OSUP-Nil,Exmp": ["Tax Period", "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
+        "ISUP-Rev": ["Tax Period", "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
+        "OSUP-NonGST": ["Tax Period", "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
+        "InterSUP-Unreg": ["Tax Period", "Total Taxable Value", "Integrated Tax"],
+        "InterSUP-Comp": ["Tax Period", "Total Taxable Value", "Integrated Tax"],
+        "InterSUP-UIN": ["Tax Period", "Total Taxable Value", "Integrated Tax"],
         "ITC-Available": ["Tax Period", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
         "ITC-avl-IMPG": ["Tax Period", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
         "ITC-avl-IMPS": ["Tax Period", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
-        "ITC-avl-ISRC": ["Tax Period", "Total taxable value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
+        "ITC-avl-ISRC": ["Tax Period", "Total Taxable Value", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
         "ITC-avl-ISD": ["Tax Period", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
         "ITC-avl-OTH": ["Tax Period", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
         "ITC-Reversed": ["Tax Period", "Integrated Tax", "Central Tax", "State/UT Tax", "Cess"],
@@ -537,26 +537,26 @@ def create_excel_report(data_dict, save_path, template_path=None):
     }
 
     column_formats_map = {  # Renamed column_formats to column_formats_map
-        "OSUP-Detail": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "OSUP-Detail": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                         "Integrated Tax": INDIAN_FORMAT_GSTR3B, "Central Tax": INDIAN_FORMAT_GSTR3B,
                         "State/UT Tax": INDIAN_FORMAT_GSTR3B, "Cess": INDIAN_FORMAT_GSTR3B},
-        "OSUP-Zero": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "OSUP-Zero": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                       "Integrated Tax": INDIAN_FORMAT_GSTR3B, "Central Tax": INDIAN_FORMAT_GSTR3B,
                       "State/UT Tax": INDIAN_FORMAT_GSTR3B, "Cess": INDIAN_FORMAT_GSTR3B},
-        "OSUP-Nil,Exmp": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "OSUP-Nil,Exmp": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                           "Integrated Tax": INDIAN_FORMAT_GSTR3B, "Central Tax": INDIAN_FORMAT_GSTR3B,
                           "State/UT Tax": INDIAN_FORMAT_GSTR3B, "Cess": INDIAN_FORMAT_GSTR3B},
-        "ISUP-Rev": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "ISUP-Rev": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                      "Integrated Tax": INDIAN_FORMAT_GSTR3B, "Central Tax": INDIAN_FORMAT_GSTR3B,
                      "State/UT Tax": INDIAN_FORMAT_GSTR3B, "Cess": INDIAN_FORMAT_GSTR3B},
-        "OSUP-NonGST": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "OSUP-NonGST": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                         "Integrated Tax": INDIAN_FORMAT_GSTR3B, "Central Tax": INDIAN_FORMAT_GSTR3B,
                         "State/UT Tax": INDIAN_FORMAT_GSTR3B, "Cess": INDIAN_FORMAT_GSTR3B},
-        "InterSUP-Unreg": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "InterSUP-Unreg": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                            "Integrated Tax": INDIAN_FORMAT_GSTR3B},
-        "InterSUP-Comp": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "InterSUP-Comp": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                           "Integrated Tax": INDIAN_FORMAT_GSTR3B},
-        "InterSUP-UIN": {"Tax Period": "General", "Total taxable value": INDIAN_FORMAT_GSTR3B,
+        "InterSUP-UIN": {"Tax Period": "General", "Total Taxable Value": INDIAN_FORMAT_GSTR3B,
                          "Integrated Tax": INDIAN_FORMAT_GSTR3B},
         "ITC-Available": {"Tax Period": "General", "Integrated Tax": INDIAN_FORMAT_GSTR3B,
                           "Central Tax": INDIAN_FORMAT_GSTR3B, "State/UT Tax": INDIAN_FORMAT_GSTR3B,
@@ -653,6 +653,7 @@ def create_excel_report(data_dict, save_path, template_path=None):
             # print(f"[DEBUG] Removed existing sheet: {new_sheet_name}")
 
         ws = wb.create_sheet(new_sheet_name)
+        ws.freeze_panes = "B3"
         ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(current_headers))
         title_cell_ws = ws.cell(row=1, column=1)  # Renamed title_cell
         title_cell_ws.value = section_titles_map[sheet_key]  # Use section_titles_map
